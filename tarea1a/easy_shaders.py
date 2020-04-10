@@ -7,8 +7,6 @@ Simple Shaders
 from OpenGL.GL import *
 import OpenGL.GL.shaders
 import numpy as np
-from PIL import Image
-
 import basic_shapes as bs
 
 
