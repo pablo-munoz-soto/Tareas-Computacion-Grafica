@@ -4,8 +4,8 @@
 Daniel Calderon, CC3501, 2019-2
 vertices and indices for simple shapes
 """
-
-
+import ex_curves as cu
+import numpy as np
 # A simple class container to store vertices and indices that define a shape
 class Shape:
     def __init__(self, vertices, indices, textureFileName=None):
@@ -90,6 +90,24 @@ def createColorQuad(r, g, b):
          2, 3, 0]
 
     return Shape(vertices, indices)
+
+def createCurve(list):
+    vertices=[]
+    for point in list:
+        vertices.append(point[0])
+        vertices.append(point[1])
+        vertices.append(point[2])
+        vertices.append(0)
+        vertices.append(0)
+        vertices.append(0)
+        vertices+=[point[0],-1,0,0,0,0]
+    indices=[0,1,2]
+    i=2
+    while i<(len(list)*2)-2:
+        indices=indices+[i,i+1,i+2]
+        i+=2
+    return Shape(vertices,indices)
+
 
 
 def createTextureQuad(image_filename, nx=1, ny=1):

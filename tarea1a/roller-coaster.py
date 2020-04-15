@@ -8,12 +8,20 @@ import easy_shaders as es
 import scene_graph as sg
 import basic_shapes as bs
 import sys
+import ex_curves as cu
 puntos=[]
-with open(str(sys.argv[1])) as csv_file:
+"with open(str(sys.argv[1])) as csv_file:"
+with open("track.txt") as csv_file:
     csv_reader=csv.reader(csv_file, delimiter='\t')
     for row in csv_reader:
         puntos.append(', '.join(row))
-
+i=0
+while i<len(puntos):
+   if 'x' in puntos[i]:
+    puntos[i]=np.array([[float(puntos[i][1])/10, float(puntos[i][3])/10, 1]],).T
+   else:
+     puntos[i]=np.array([[float(puntos[i][0])/10, float(puntos[i][2])/10, 0]],).T
+   i+=1
 def on_key(window, key, scancode, action, mods):
 
     if action != glfw.PRESS:
@@ -25,13 +33,38 @@ def on_key(window, key, scancode, action, mods):
     else:
         print('Unknown key')
 
+def createRiel(puntos):
+    puntos = [np.array([[-0.4,0,0]]).T,np.array([[-0.3,0,0]]).T,np.array([[-0.2,0,0]]).T,np.array([[-0.1, 0, 0]]).T] + puntos + [np.array([[puntos[-1:][0][0]+0.1,puntos[-1:][0][1]/2,0]]).T,np.array([[puntos[-1:][0][0]+0.2, 0, 0]]).T,np.array([[puntos[-1:][0][0]+0.3, 0, 0]]).T]
+    curvas=sg.SceneGraphNode("curvas")
+    for i in range(1,len(puntos)-2):
+      if puntos[i][2][0]==0:
+        Gmb=cu.spliceMatrix(puntos[i-1],puntos[i],puntos[i+1],puntos[i+2])
+        splicerCurve= cu.evalCurve(Gmb,1000)
+        splicer=sg.SceneGraphNode("splicer"+str(i))
+        splicer.childs+=[es.toGPUShape(bs.createCurve(splicerCurve))]
+        curvas.childs+=[splicer]
 
-def createRollercoaster():
+    curvas.transform=np.matmul(tr.uniformScale(1.7),tr.translate(-0.2,-0.05,0))
+    return curvas
+
+
+
+def createRollercoaster(puntos):
     gpuBlackQuad = es.toGPUShape(bs.createColorQuad(0, 0, 0))
     gpuRedQuad = es.toGPUShape(bs.createColorQuad(1, 0, 0))
     gpuSkinQuad = es.toGPUShape(bs.createColorQuad(0.99,0.86,0.79))
     gpuGreenQuad= es.toGPUShape(bs.createColorQuad(0,1,0))
     gpuBlueQuad = es.toGPUShape(bs.createColorQuad(0, 0, 1))
+    """L=[np.array([[0,0.4,0]]).T,np.array([[0.1,0.6,0]]).T,np.array([[0.2,0.4,0]]).T,np.array([[0.3,0.3,0]]).T,np.array([[0.4,0.1,0]]).T,np.array([[0.5,0,0]]).T,np.array([[0.6,0.1,0]]).T]
+ """
+    riel=createRiel(puntos)
+    """R0 = np.array([[-1, 0, 0]]).T
+    R1 = np.array([[-0.5, 1, 0]]).T
+    R2 = np.array([[0, 0, 0]]).T
+    R3 = np.array([[0.5, -1, 0]]).T
+    GMb = cu.bezierMatrix(R0, R1, R2, R3)
+    bezierCurve = cu.evalCurve(GMb,10)
+    gpuCurve=es.toGPUShape(bs.createCurve(bezierCurve))"""
 
 
     body1scaled = sg.SceneGraphNode("body1scaled")
@@ -116,6 +149,7 @@ def createRollercoaster():
     chasis.childs += [gpuRedQuad]
 
     rollercoaster = sg.SceneGraphNode("rollercoaster")
+    rollercoaster.transform= tr.uniformScale(0.8)
     rollercoaster.childs += [chasis]
     rollercoaster.childs += [frontWheel]
     rollercoaster.childs += [backWheel]
@@ -125,7 +159,9 @@ def createRollercoaster():
     traslatedRollercoaster.transform = tr.translate(-0.9, 0, 0)
     traslatedRollercoaster.childs += [rollercoaster]
 
-    return traslatedRollercoaster
+    final= sg.SceneGraphNode("final")
+    final.childs += [traslatedRollercoaster,riel]
+    return final
 
 
 if __name__ == "__main__":
@@ -166,7 +202,7 @@ if __name__ == "__main__":
 
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT)
-        rollercoaster=createRollercoaster()
+        rollercoaster=createRollercoaster(puntos)
         # Drawing the roller coaster
         sg.drawSceneGraphNode(rollercoaster, pipeline, "transform")
 
