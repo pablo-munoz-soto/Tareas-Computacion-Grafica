@@ -8,6 +8,7 @@ from OpenGL.GL import *
 import OpenGL.GL.shaders
 import numpy as np
 import basic_shapes as bs
+from PIL import Image
 
 
 # We will use 32 bits data, so we have 4 bytes
@@ -38,7 +39,6 @@ def textureSimpleSetup(texture, imgName, wrapMode, filterMode):
     # texture filtering params
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode)
-
     image = Image.open(imgName)
     img_data = np.array(list(image.getdata()), np.uint8)
 

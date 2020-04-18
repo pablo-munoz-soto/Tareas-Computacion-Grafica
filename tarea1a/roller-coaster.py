@@ -36,35 +36,46 @@ def on_key(window, key, scancode, action, mods):
 def createRiel(puntos):
     puntos = [np.array([[-0.4,0,0]]).T,np.array([[-0.3,0,0]]).T,np.array([[-0.2,0,0]]).T,np.array([[-0.1, 0, 0]]).T] + puntos + [np.array([[puntos[-1:][0][0]+0.1,puntos[-1:][0][1]/2,0]]).T,np.array([[puntos[-1:][0][0]+0.2, 0, 0]]).T,np.array([[puntos[-1:][0][0]+0.3, 0, 0]]).T]
     curvas=sg.SceneGraphNode("curvas")
+    subcurvas=[]
     for i in range(1,len(puntos)-2):
       if puntos[i][2][0]==0:
         Gmb=cu.spliceMatrix(puntos[i-1],puntos[i],puntos[i+1],puntos[i+2])
         splicerCurve= cu.evalCurve(Gmb,1000)
+        subcurvas+=[splicerCurve]
         splicer=sg.SceneGraphNode("splicer"+str(i))
         splicer.childs+=[es.toGPUShape(bs.createCurve(splicerCurve))]
         curvas.childs+=[splicer]
 
-    curvas.transform=np.matmul(tr.uniformScale(1.7),tr.translate(-0.2,-0.05,0))
-    return curvas
+    curvas.transform=np.matmul(tr.uniformScale(1.7),tr.translate(-0.29,-0.025,0))
+    return curvas,subcurvas
 
+def createSky():
+    skyTexture = es.toGPUShape(bs.createTextureQuad("sky.jpg"), GL_REPEAT, GL_NEAREST)
+    sky = sg.SceneGraphNode("sky")
+    sky.transform=tr.uniformScale(2)
+    sky.childs += [skyTexture]
+    return sky
 
+def createMetalBars(subcurvas):
+    i=0
+    barras=sg.SceneGraphNode('barras')
+    for subcurva in subcurvas:
+     barsGPU= es.toGPUShape(bs.createBars(subcurva))
+     bar= sg.SceneGraphNode('bar'+str(i))
+     bar.childs+=[barsGPU]
+     barras.childs+=[bar]
+     i+=1
+    return barras
 
 def createRollercoaster(puntos):
     gpuBlackQuad = es.toGPUShape(bs.createColorQuad(0, 0, 0))
     gpuRedQuad = es.toGPUShape(bs.createColorQuad(1, 0, 0))
-    gpuSkinQuad = es.toGPUShape(bs.createColorQuad(0.99,0.86,0.79))
+    gpuSkinQuad = es.toGPUShape(bs.createColorQuad(0.98,0.82,0.77))
     gpuGreenQuad= es.toGPUShape(bs.createColorQuad(0,1,0))
     gpuBlueQuad = es.toGPUShape(bs.createColorQuad(0, 0, 1))
-    """L=[np.array([[0,0.4,0]]).T,np.array([[0.1,0.6,0]]).T,np.array([[0.2,0.4,0]]).T,np.array([[0.3,0.3,0]]).T,np.array([[0.4,0.1,0]]).T,np.array([[0.5,0,0]]).T,np.array([[0.6,0.1,0]]).T]
- """
-    riel=createRiel(puntos)
-    """R0 = np.array([[-1, 0, 0]]).T
-    R1 = np.array([[-0.5, 1, 0]]).T
-    R2 = np.array([[0, 0, 0]]).T
-    R3 = np.array([[0.5, -1, 0]]).T
-    GMb = cu.bezierMatrix(R0, R1, R2, R3)
-    bezierCurve = cu.evalCurve(GMb,10)
-    gpuCurve=es.toGPUShape(bs.createCurve(bezierCurve))"""
+    riel,subcurvas=createRiel(puntos)
+    bars=createMetalBars(subcurvas)
+    riel.childs+=[bars]
 
 
     body1scaled = sg.SceneGraphNode("body1scaled")
@@ -184,27 +195,38 @@ if __name__ == "__main__":
     # Connecting the callback function 'on_key' to handle keyboard events
     glfw.set_key_callback(window, on_key)
 
-    # Assembling the shader program (pipeline) with both shaders
-    pipeline = es.SimpleTransformShaderProgram()
 
-    # Telling OpenGL to use our shader program
-    glUseProgram(pipeline.shaderProgram)
+
 
     # Setting up the clear screen color
     glClearColor(1, 1, 1, 1.0)
 
     # Our shapes here are always fully painted
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-
     while not glfw.window_should_close(window):
         # Using GLFW to check for input events
         glfw.poll_events()
 
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT)
+        # Assembling the shader program (pipeline) with both shaders
+        pipeline2 = es.SimpleTextureTransformShaderProgram()
+
+        glUseProgram(pipeline2.shaderProgram)
+
+        sky = createSky()
+
+        sg.drawSceneGraphNode(sky, pipeline2, "transform")
+
+
+        pipeline = es.SimpleTransformShaderProgram()
+
+        # Telling OpenGL to use our shader program
+        glUseProgram(pipeline.shaderProgram)
         rollercoaster=createRollercoaster(puntos)
         # Drawing the roller coaster
         sg.drawSceneGraphNode(rollercoaster, pipeline, "transform")
+
 
         # Once the render is done, buffers are swapped, showing only the complete scene.
         glfw.swap_buffers(window)

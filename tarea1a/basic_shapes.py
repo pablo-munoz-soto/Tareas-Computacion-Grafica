@@ -100,7 +100,7 @@ def createCurve(list):
         vertices.append(0)
         vertices.append(0)
         vertices.append(0)
-        vertices+=[point[0],-1,0,0,0,0]
+        vertices+=[point[0],point[1]-0.02,0,1,1,1]
     indices=[0,1,2]
     i=2
     while i<(len(list)*2)-2:
@@ -108,6 +108,21 @@ def createCurve(list):
         i+=2
     return Shape(vertices,indices)
 
+def createBars(subcurva):
+    vertices = []
+    i = 0
+    while i < len(subcurva) - 50:
+            vertices += [subcurva[i][0], -1, 0, 0,0, 0]
+            vertices += [subcurva[i][0], subcurva[i][1], 0, 0, 0, 0]
+            vertices += [subcurva[i + 50][0], -1, 0, 0, 0, 0]
+            vertices += [subcurva[i + 50][0], subcurva[i + 1][1], 0, 0, 0, 0]
+            i += 50
+    i = 0
+    indices = []
+    while i < len(vertices)*(1.5):
+      indices += [i, i + 1, i + 2, i + 2, i + 3, i]
+      i += 3
+    return Shape(vertices, indices)
 
 
 def createTextureQuad(image_filename, nx=1, ny=1):
@@ -130,6 +145,24 @@ def createTextureQuad(image_filename, nx=1, ny=1):
 
     return Shape(vertices, indices, textureFileName)
 
+def createTextureShape(image_filename,lista):
+    vertices=[]
+    lista=lista[0:1]
+    for curva in lista:
+        i=0
+        while i<len(curva)-1:
+         vertices += [curva[i][0], -1, 0, 0, 1]
+         vertices += [curva[i+1][0], -1, 0, 1, 1]
+         vertices += [curva[i+1][0], curva[i+1][1], 0, 1, 0]
+         vertices+=[curva[i][0],curva[i][1], 0,0,0]
+         i+=1
+    i = 0
+    indices=[]
+    while i<len(lista)*6-1:
+        indices += [i, i + 1, i + 2,i+2,i+3,i]
+        i += 3
+
+    return Shape(vertices,indices,image_filename)
 
 def createRainbowCube():
 
