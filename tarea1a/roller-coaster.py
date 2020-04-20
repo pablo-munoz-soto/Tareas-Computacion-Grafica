@@ -9,46 +9,57 @@ import scene_graph as sg
 import basic_shapes as bs
 import sys
 import ex_curves as cu
+
+
 puntos=[]
-"with open(str(sys.argv[1])) as csv_file:"
-with open("track.txt") as csv_file:
+#leyendo el archivo y almacenando los puntos
+with open(str(sys.argv[1])) as csv_file:
     csv_reader=csv.reader(csv_file, delimiter='\t')
     for row in csv_reader:
         puntos.append(', '.join(row))
+
+
 i=0
 while i<len(puntos):
+   n=puntos[i].index(',')
    if 'x' in puntos[i]:
-    puntos[i]=np.array([[float(puntos[i][1])/10, float(puntos[i][3])/10, 1]],).T
+    puntos[i]=np.array([[float(puntos[i][1:n])/10, float(puntos[i][n+1:len(puntos[i])])/10, 1]],).T
    else:
-     puntos[i]=np.array([[float(puntos[i][0])/10, float(puntos[i][2])/10, 0]],).T
+     puntos[i]=np.array([[float(puntos[i][0:n])/10, float(puntos[i][n+1:len(puntos[i])])/10, 0]],).T
    i+=1
-def on_key(window, key, scancode, action, mods):
 
+#implementando la funcion para leer inputs del teclado
+def on_key(window, key, scancode, action, mods):
+    global salto, caida, alturaSalto, n
     if action != glfw.PRESS:
         return
 
     if key == glfw.KEY_ESCAPE:
         sys.exit()
 
-    else:
-        print('Unknown key')
+    if key == glfw.KEY_SPACE and caida==0 and salto==0:
+        salto=1
+        alturaSalto=n
 
+
+#funcion que modela la curva en base a la lista de puntos
 def createRiel(puntos):
     puntos = [np.array([[-0.4,0,0]]).T,np.array([[-0.3,0,0]]).T,np.array([[-0.2,0,0]]).T,np.array([[-0.1, 0, 0]]).T] + puntos + [np.array([[puntos[-1:][0][0]+0.1,puntos[-1:][0][1]/2,0]]).T,np.array([[puntos[-1:][0][0]+0.2, 0, 0]]).T,np.array([[puntos[-1:][0][0]+0.3, 0, 0]]).T]
-    curvas=sg.SceneGraphNode("curvas")
+    curvas=sg.SceneGraphNode("riel")
     subcurvas=[]
     for i in range(1,len(puntos)-2):
       if puntos[i][2][0]==0:
         Gmb=cu.spliceMatrix(puntos[i-1],puntos[i],puntos[i+1],puntos[i+2])
+        #funcion que genera la spline de catmull-rom
         splicerCurve= cu.evalCurve(Gmb,1000)
         subcurvas+=[splicerCurve]
         splicer=sg.SceneGraphNode("splicer"+str(i))
         splicer.childs+=[es.toGPUShape(bs.createCurve(splicerCurve))]
         curvas.childs+=[splicer]
-
-    curvas.transform=np.matmul(tr.uniformScale(1.7),tr.translate(-0.29,-0.025,0))
     return curvas,subcurvas
 
+
+#funcion que crea la gpushape con la textura del cielo
 def createSky():
     skyTexture = es.toGPUShape(bs.createTextureQuad("sky.jpg"), GL_REPEAT, GL_NEAREST)
     sky = sg.SceneGraphNode("sky")
@@ -56,6 +67,8 @@ def createSky():
     sky.childs += [skyTexture]
     return sky
 
+
+#funcion que crea las barras para decorar la montaña rusa
 def createMetalBars(subcurvas):
     i=0
     barras=sg.SceneGraphNode('barras')
@@ -67,17 +80,27 @@ def createMetalBars(subcurvas):
      i+=1
     return barras
 
+
+#funcion que crea el carrito y organiza las gpuShape anteriores
 def createRollercoaster(puntos):
+    #creando los cuadrados
     gpuBlackQuad = es.toGPUShape(bs.createColorQuad(0, 0, 0))
     gpuRedQuad = es.toGPUShape(bs.createColorQuad(1, 0, 0))
     gpuSkinQuad = es.toGPUShape(bs.createColorQuad(0.98,0.82,0.77))
     gpuGreenQuad= es.toGPUShape(bs.createColorQuad(0,1,0))
     gpuBlueQuad = es.toGPUShape(bs.createColorQuad(0, 0, 1))
+    #creando la curva
     riel,subcurvas=createRiel(puntos)
+    #creando las barras
     bars=createMetalBars(subcurvas)
     riel.childs+=[bars]
+    riel.transform = np.matmul(tr.uniformScale(1.7), tr.translate(-0.29, -0.025, 0))
+    curva=[]
+    for subcurva in subcurvas:
+        for punto in subcurva:
+         curva.append(punto)
 
-
+    #creando el carrito con los cuadrados
     body1scaled = sg.SceneGraphNode("body1scaled")
     body1scaled.transform = tr.scale(0.03,0.05,0)
     body1scaled.childs += [gpuRedQuad]
@@ -142,19 +165,15 @@ def createRollercoaster(puntos):
     wheel.transform = tr.uniformScale(0.025)
     wheel.childs += [gpuBlackQuad]
 
-    wheelRotation = sg.SceneGraphNode("wheelRotation")
-    wheelRotation.childs += [wheel]
 
-    # Instanciating 2 wheels, for the front and back parts
     frontWheel = sg.SceneGraphNode("frontWheel")
     frontWheel.transform = tr.translate(0.0375, -0.0375, 0)
-    frontWheel.childs += [wheelRotation]
+    frontWheel.childs += [wheel]
 
     backWheel = sg.SceneGraphNode("backWheel")
     backWheel.transform = tr.translate(-0.0375, -0.0375, 0)
-    backWheel.childs += [wheelRotation]
+    backWheel.childs += [wheel]
 
-    # Creating the chasis of the car
     chasis = sg.SceneGraphNode("chasis")
     chasis.transform = tr.scale(0.125, 0.0625, 0.0625)
     chasis.childs += [gpuRedQuad]
@@ -166,25 +185,28 @@ def createRollercoaster(puntos):
     rollercoaster.childs += [backWheel]
     rollercoaster.childs += [person1, person2, person3]
 
-    traslatedRollercoaster = sg.SceneGraphNode("traslatedCar")
+    traslatedRollercoaster = sg.SceneGraphNode("traslatedRollercoaster")
     traslatedRollercoaster.transform = tr.translate(-0.9, 0, 0)
     traslatedRollercoaster.childs += [rollercoaster]
 
     final= sg.SceneGraphNode("final")
+    final.transform=tr.translate(0,-0.3,0)
     final.childs += [traslatedRollercoaster,riel]
-    return final
+    return final,curva
 
 
+
+#iniciando el programa
 if __name__ == "__main__":
 
-    # Initialize glfw
+    # iniciando glfw
     if not glfw.init():
         sys.exit()
 
     width = 600
     height = 600
 
-    window = glfw.create_window(width, height, "2D cars via scene graph", None, None)
+    window = glfw.create_window(width, height, "Roller Coaster", None, None)
 
     if not window:
         glfw.terminate()
@@ -195,40 +217,112 @@ if __name__ == "__main__":
     # Connecting the callback function 'on_key' to handle keyboard events
     glfw.set_key_callback(window, on_key)
 
+    #creando la gpuShape
+    rollercoaster, curva = createRollercoaster(puntos)
+    #almacenando donde no hay riel en la figura
+    cortes=[]
+    for punto in curva:
+        if punto[2]==1:cortes.append(punto)
+    #creando la gpuShape de la textura
+    sky = createSky()
 
-
-
-    # Setting up the clear screen color
     glClearColor(1, 1, 1, 1.0)
 
-    # Our shapes here are always fully painted
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    #asignando las variables necesarias para controlar el movimiento
+    t=0
+    n=600
+    vacio=0
+    contador=0
+    salto=0
+    contadorSalto=0
+    caida=0
+    alturaSalto=0
+    SaltoEnVacio=0
     while not glfw.window_should_close(window):
-        # Using GLFW to check for input events
+        if len(curva)-n<20: sys.exit()
+
+
         glfw.poll_events()
 
-        # Clearing the screen in both, color and depth
+
         glClear(GL_COLOR_BUFFER_BIT)
-        # Assembling the shader program (pipeline) with both shaders
+
+
         pipeline2 = es.SimpleTextureTransformShaderProgram()
 
         glUseProgram(pipeline2.shaderProgram)
 
-        sky = createSky()
+
 
         sg.drawSceneGraphNode(sky, pipeline2, "transform")
 
 
         pipeline = es.SimpleTransformShaderProgram()
 
-        # Telling OpenGL to use our shader program
+
         glUseProgram(pipeline.shaderProgram)
-        rollercoaster=createRollercoaster(puntos)
-        # Drawing the roller coaster
+
+        riel=sg.findNode(rollercoaster,'riel')
+        #creando el movimiento del rollercoaster
+        riel.transform=np.matmul(tr.uniformScale(1.7), tr.translate(-0.29-0.0001*int(t), -0.025, 0))
+        carro=sg.findNode(rollercoaster,"rollercoaster")
+        while curva[n][0] - curva[n - 1][0] == 0:
+            n+=1
+            t+=1
+        #calculando el angulo de rotacion del carrito
+        angulo=np.arctan((curva[n][1]-curva[n-1][1])/(curva[n][0]-curva[n-1][0]))
+
+        for punto in cortes:
+         if (0<punto[0] - curva[n][0] <= 0.002) and (punto[0]>curva[n][0]) and (vacio==0):
+            vacio=1
+            contador=0
+        if contador==50:
+            contador=0
+            vacio=0
+
+
+        carro.transform=np.matmul(tr.rotationZ(angulo),tr.uniformScale(0.8))
+        carro=sg.findNode(rollercoaster,"traslatedRollercoaster")
+        if caida==0:
+         carro.transform=tr.translate(-0.9, curva[n][1]*1.75, 0)
+
+
+        if salto==1: contadorSalto+=1
+
+        if salto==1 and contadorSalto<50 :
+            carro.transform = tr.translate(-0.9, curva[alturaSalto][1] * 1.7+contadorSalto*0.01, 0)
+
+
+        if salto==1 and contadorSalto>=50 :
+            carro.transform = tr.translate(-0.9, curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01+0.5, 0)
+
+        if curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01+0.5-curva[n][1]*1.7<0.001:
+            contadorSalto = 0
+            salto = 0
+            SaltoEnVacio = 0
+
+
+        if vacio==1 and salto==1:
+            contador+=1
+
+
+        if vacio==1 and salto==0:
+            caida += 1
+            carro.transform=tr.translate(-0.9, curva[n-10][1]*1.72-0.01*caida, 0)
+
+
+        if vacio==0:
+         n+=20
         sg.drawSceneGraphNode(rollercoaster, pipeline, "transform")
 
 
-        # Once the render is done, buffers are swapped, showing only the complete scene.
+        if curva[n-10][1]*1.7-0.01*caida<-1:sys.exit()
+
+
+        t += 20
+
+
         glfw.swap_buffers(window)
 
     glfw.terminate()
