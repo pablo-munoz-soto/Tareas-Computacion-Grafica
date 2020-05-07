@@ -179,11 +179,11 @@ def createRollercoaster(puntos):
     chasis.childs += [gpuRedQuad]
 
     rollercoaster = sg.SceneGraphNode("rollercoaster")
-    rollercoaster.transform= tr.uniformScale(0.8)
     rollercoaster.childs += [chasis]
     rollercoaster.childs += [frontWheel]
     rollercoaster.childs += [backWheel]
     rollercoaster.childs += [person1, person2, person3]
+    rollercoaster.transform=tr.uniformScale(0.8)
 
     traslatedRollercoaster = sg.SceneGraphNode("traslatedRollercoaster")
     traslatedRollercoaster.transform = tr.translate(-0.9, 0, 0)
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     #almacenando donde no hay riel en la figura
     cortes=[]
     for punto in curva:
-        if punto[2]==1:cortes.append(punto)
+        if punto[2]==1:cortes.append(np.array([punto[0],punto[1],0]))
     #creando la gpuShape de la textura
     sky = createSky()
 
@@ -238,10 +238,10 @@ if __name__ == "__main__":
     contadorSalto=0
     caida=0
     alturaSalto=0
-    SaltoEnVacio=0
+    alturaCaida=0
     while not glfw.window_should_close(window):
-        if len(curva)-n<20: sys.exit()
 
+        if len(curva)-n<20: sys.exit()
 
         glfw.poll_events()
 
@@ -267,57 +267,70 @@ if __name__ == "__main__":
         #creando el movimiento del rollercoaster
         riel.transform=np.matmul(tr.uniformScale(1.7), tr.translate(-0.29-0.0001*int(t), -0.025, 0))
         carro=sg.findNode(rollercoaster,"rollercoaster")
+        #evitando que se indetermine el angulo
         while curva[n][0] - curva[n - 1][0] == 0:
             n+=1
             t+=1
         #calculando el angulo de rotacion del carrito
         angulo=np.arctan((curva[n][1]-curva[n-1][1])/(curva[n][0]-curva[n-1][0]))
 
+        #viendo si el carrito esta en el vacio
         for punto in cortes:
-         if (0<punto[0] - curva[n][0] <= 0.002) and (punto[0]>curva[n][0]) and (vacio==0):
+         if (0<punto[0] - curva[n][0] <= 0.002)  and vacio==0:
             vacio=1
             contador=0
         if contador==50:
             contador=0
             vacio=0
 
-
+        #aplicando la rotacion
         carro.transform=np.matmul(tr.rotationZ(angulo),tr.uniformScale(0.8))
         carro=sg.findNode(rollercoaster,"traslatedRollercoaster")
-        if caida==0:
-         carro.transform=tr.translate(-0.9, curva[n][1]*1.75, 0)
+        #si no esta saltando ni en caida el carrito sigue la pista
+        if salto==0 and caida==0:
+         carro.transform=tr.translate(-0.9, curva[n][1]*1.7, 0)
 
-
+        #contador para ver la duracion del salto
         if salto==1: contadorSalto+=1
-
+        #si el contador es menor a 50 el carrito esta subiendo
         if salto==1 and contadorSalto<50 :
-            carro.transform = tr.translate(-0.9, curva[alturaSalto][1] * 1.7+contadorSalto*0.01, 0)
+            carro.transform = tr.translate(-0.9, curva[alturaSalto][1]* 1.7 +contadorSalto*0.01, 0)
 
-
+        #si el contador es mayor a 50 el carrito esta bajando
         if salto==1 and contadorSalto>=50 :
             carro.transform = tr.translate(-0.9, curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01+0.5, 0)
 
-        if curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01+0.5-curva[n][1]*1.7<0.001:
+        #si detecta que el carrito aterrizó en el riel se detiene el salto y se vuelve a estado inicial
+        if curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01+0.5-curva[n][1]*1.7<0.001 and salto==1:
             contadorSalto = 0
             salto = 0
-            SaltoEnVacio = 0
 
-
-        if vacio==1 and salto==1:
+        #contador para ver la duracion del vacio
+        if vacio==1:
             contador+=1
 
+        #si el carrito entra al vacio sin haber saltado se inicia la secuencia de caida
+        if vacio==1 and salto==0 or caida>0:
+            if alturaCaida==0:
+                alturaCaida=n
+            carro.transform=tr.translate(-0.9, curva[alturaCaida][1]*1.7-0.01*caida, 0)
+            caida+=1
 
-        if vacio==1 and salto==0:
-            caida += 1
-            carro.transform=tr.translate(-0.9, curva[n-10][1]*1.72-0.01*caida, 0)
+        #si el carrito aterriza en el riel debido a la caida se retorna al estado inicial
+        if 0<=curva[alturaCaida][1] * 1.7 - caida * 0.01 - curva[n][1] * 1.7 <= 0.02 and caida > 10:
+            alturaCaida=0
+            caida=0
 
 
+        #si no se esta en el vacio se sigue avanzando por el riel
         if vacio==0:
          n+=20
         sg.drawSceneGraphNode(rollercoaster, pipeline, "transform")
 
 
-        if curva[n-10][1]*1.7-0.01*caida<-1:sys.exit()
+        #detectando si el carrito se cae hacia abajo de la pantalla
+        if curva[alturaCaida][1] * 1.7 - caida * 0.01<-1 or curva[alturaSalto][1] * 1.7-(contadorSalto-50)*0.01<-1:
+            sys.exit()
 
 
         t += 20
