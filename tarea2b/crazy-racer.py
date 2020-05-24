@@ -23,13 +23,6 @@ def normalizar(vector):
     vector=np.multiply(vector,1/modulo)
     return vector
 
-puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0,0,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,1,0]]).T,np.array([[-1.7,0,0]]).T,np.array([[-1,-0.3,0]]).T]
-
-
-
-
-
-
 def velocidad(P0,P1,P2):
     a=((P0[0][0] - P2[0][0]) ** 2 + (P0[1][0] - P2[1][0]) ** 2) ** (1 / 2)
     b = ((P0[0][0] - P1[0][0]) ** 2 + (P0[1][0] - P1[1][0]) ** 2 ) ** (1 / 2)
@@ -69,7 +62,30 @@ def velocidad(P0,P1,P2):
     return normalizar(velocidad)
 
 
-
+puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0,0,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,1,0]]).T,np.array([[-1.7,0,0]]).T,np.array([[-1,-0.3,0]]).T]
+puntos2=[]
+for i in range(len(puntos)):
+    if i==0:
+        v1=velocidad(puntos[len(puntos)-1],puntos[0],puntos[1])
+    if i==len(puntos)-1:
+        v1 = velocidad(puntos[i-1], puntos[i], puntos[0])
+    elif i!=0:
+        v1=velocidad(puntos[i-1], puntos[i], puntos[i+1])
+    v1[2][0]=0
+    x = 1
+    if v1[0][0] == 0:
+        y = 0
+    if v1[1][0] == 0:
+        y = 1
+        x = 0
+    if v1[0][0] != 0 and v1[1][0] != 0:
+        y = (-v1[0][0] * x) / v1[1][0]
+    v2 = normalizar(np.array([[x, y, 0]]).T)
+    if np.cross(v1.T, v2.T)[0][2] > 0:
+        v2 = -v2
+    x = puntos[i][0][0] + v2[0][0]
+    y = puntos[i][1][0] + v2[1][0]
+    puntos2.append(np.array([[x,y,puntos[i][2][0]]]).T)
 
 def crearSubcurvas(puntos):
  subcurvas=[]
@@ -82,7 +98,7 @@ def crearSubcurvas(puntos):
         Gmb = cu.hermiteMatrix(P1, P2, v1, v2)
         # funcion que genera la spline de catmull-rom
         distancia=((puntos[i][0][0]-puntos[i+1][0][0])**2+(puntos[i][1][0]-puntos[i+1][1][0])**2+(puntos[i][2][0]-puntos[i+1][2][0])**2)**(1/2)
-        splicerCurve = cu.evalCurve(Gmb, int(distancia*500))
+        splicerCurve = cu.evalCurve(Gmb, 500)
         subcurvas += [splicerCurve]
 
     elif i==len(puntos)-2:
@@ -93,7 +109,7 @@ def crearSubcurvas(puntos):
         Gmb = cu.hermiteMatrix(P1, P2, v1, v2)
         # funcion que genera la spline de catmull-rom
         distancia=((puntos[i][0][0]-puntos[i+1][0][0])**2+(puntos[i][1][0]-puntos[i+1][1][0])**2+(puntos[i][2][0]-puntos[i+1][2][0])**2)**(1/2)
-        splicerCurve = cu.evalCurve(Gmb, int(distancia*500))
+        splicerCurve = cu.evalCurve(Gmb, 500)
         subcurvas += [splicerCurve]
 
     elif i==len(puntos)-1:
@@ -104,7 +120,7 @@ def crearSubcurvas(puntos):
         Gmb = cu.hermiteMatrix(P1, P2, v1, v2)
         # funcion que genera la spline de catmull-rom
         distancia = ((puntos[i][0][0] - puntos[0][0][0]) ** 2 + (puntos[i][1][0] - puntos[0][1][0]) ** 2 + (puntos[i][2][0] - puntos[0][2][0]) ** 2) ** (1 / 2)
-        splicerCurve = cu.evalCurve(Gmb, int(distancia*500))
+        splicerCurve = cu.evalCurve(Gmb, 500)
         subcurvas += [splicerCurve]
 
     else:
@@ -115,7 +131,7 @@ def crearSubcurvas(puntos):
         Gmb = cu.hermiteMatrix(P1, P2, v1, v2)
         # funcion que genera la spline de catmull-rom
         distancia = ((puntos[i][0][0] - puntos[i + 1][0][0]) ** 2 + (puntos[i][1][0] - puntos[i + 1][1][0]) ** 2 + ( puntos[i][2][0] - puntos[i + 1][2][0]) ** 2) ** (1 / 2)
-        splicerCurve = cu.evalCurve(Gmb, int(distancia*500))
+        splicerCurve = cu.evalCurve(Gmb, 500)
         subcurvas += [splicerCurve]
  curvas = sg.SceneGraphNode('curvas')
  for x in range(len(subcurvas)):
@@ -123,7 +139,96 @@ def crearSubcurvas(puntos):
      n=sg.SceneGraphNode(str(x))
      n.childs+=[a]
      curvas.childs += [n]
- return curvas
+
+ return curvas,subcurvas
+
+
+"""
+def crearPista(subcurvas,subcurvas2):
+    for i in range(len(subcurvas)):
+        assert len(subcurvas[i])==len(subcurvas2[i])
+    vertices=[]
+    indices=[]
+    normales=[]
+    n=0
+    for i in range(len(subcurvas)):
+     j=0
+     while j<len(subcurvas[i]):
+        v = np.subtract(subcurvas2[i][j], subcurvas[i][j])
+        v = np.multiply(v, 0.1)
+        if j!=0:
+          normal = normalizar(np.cross(np.array([np.subtract(subcurvas[i][j], subcurvas[i][j - 1])]), np.array([v])).T)
+          if normal[2][0] < 0:
+            normal = -normal
+          normales.append(normal)
+        if j==0:
+            normal=np.array([[0,0,1]]).T
+        vertices+=[subcurvas[i][j][0],subcurvas[i][j][1],subcurvas[i][j][2],0,0,0,normal[0][0],normal[1][0],normal[2][0]]
+        vertices+=[subcurvas2[i][j][0],subcurvas2[i][j][1],subcurvas2[i][j][2],0,0,0,normal[0][0],normal[1][0],normal[2][0]]
+        if j==0:
+         n+=1
+        if j!=0:
+           indices+=[n+1,n-1,n,n+1,n+2,n]
+           n+=2
+        if j==len(subcurvas[i])-1 and i!=len(subcurvas)-1:
+            indices+=[n+1,n-1,n,n+1,n+2,n]
+        if j == len(subcurvas[i]) - 1 and i == len(subcurvas) - 1:
+            indices += [0, n - 1, n, 0, 1, n]
+        j+=1
+    pista = sg.SceneGraphNode('pista')
+    pista.childs += [es.toGPUShape(bs.Shape(vertices, indices), GL_REPEAT, GL_NEAREST)]
+    return pista"""
+
+def crearPista(subcurvas,subcurvas2):
+    for i in range(len(subcurvas)):
+        assert len(subcurvas[i])==len(subcurvas2[i])
+    vertices=[]
+    indices=[]
+    normales=[]
+    n=0
+    for i in range(len(subcurvas)):
+     j=0
+     while j<len(subcurvas[i]):
+        v = np.subtract(subcurvas2[i][j], subcurvas[i][j])
+        v = np.multiply(v, 0.1)
+        if j!=0:
+          normal = normalizar(np.cross(np.array([np.subtract(subcurvas[i][j], subcurvas[i][j - 1])]), np.array([v])).T)
+          if normal[2][0] < 0:
+            normal = -normal
+          normales.append(normal)
+        if j==0:
+            normal=np.array([[0,0,1]]).T
+        if j!=len(subcurvas[i])-1:
+         vertices+=[subcurvas[i][j][0],subcurvas[i][j][1],subcurvas[i][j][2],0,1,normal[0][0],normal[1][0],normal[2][0]]
+         vertices+=[subcurvas2[i][j][0],subcurvas2[i][j][1],subcurvas2[i][j][2],1,1,normal[0][0],normal[1][0],normal[2][0]]
+         vertices+=[subcurvas[i][j+1][0], subcurvas[i][j+1][1], subcurvas[i][j+1][2], 0, 0, normal[0][0], normal[1][0],normal[2][0]]
+         vertices+=[subcurvas2[i][j+1][0], subcurvas2[i][j + 1][1], subcurvas2[i][j+1][2], 1, 0, normal[0][0],normal[1][0], normal[2][0]]
+        if j==len(subcurvas[i])-1 and i!=len(subcurvas)-1:
+            vertices += [subcurvas[i][j][0], subcurvas[i][j][1], subcurvas[i][j][2], 0, 1, normal[0][0], normal[1][0],
+                         normal[2][0]]
+            vertices += [subcurvas2[i][j][0], subcurvas2[i][j][1], subcurvas2[i][j][2], 1, 1, normal[0][0],
+                         normal[1][0], normal[2][0]]
+            vertices += [subcurvas[i+1][0][0], subcurvas[i+1][0][1], subcurvas[i+1][0][2], 0, 0, normal[0][0],
+                         normal[1][0], normal[2][0]]
+            vertices += [subcurvas2[i+1][0][0], subcurvas2[i+1][0][1], subcurvas2[i+1][0][2], 1, 0, normal[0][0],
+                         normal[1][0], normal[2][0]]
+
+        if j == len(subcurvas[i]) - 1 and i == len(subcurvas) - 1:
+            vertices += [subcurvas[i][j][0], subcurvas[i][j][1], subcurvas[i][j][2], 0, 1, normal[0][0], normal[1][0],
+                         normal[2][0]]
+            vertices += [subcurvas2[i][j][0], subcurvas2[i][j][1], subcurvas2[i][j][2], 1, 1, normal[0][0],
+                         normal[1][0], normal[2][0]]
+            vertices += [subcurvas[0][0][0], subcurvas[0][0][1], subcurvas[0][0][2], 0, 0, normal[0][0],
+                         normal[1][0], normal[2][0]]
+            vertices += [subcurvas2[0][0][0], subcurvas2[0][0][1], subcurvas2[0][0][2], 1, 0, normal[0][0],
+                         normal[1][0], normal[2][0]]
+        indices += [n, n + 1, n + 2, n + 1, n + 2, n + 3]
+        n += 4
+        j+=1
+    pista = sg.SceneGraphNode('pista')
+    pista.childs += [es.toGPUShape(bs.Shape(vertices, indices,'pista.jpg'), GL_REPEAT, GL_NEAREST)]
+    return pista
+
 
 
 
@@ -265,8 +370,9 @@ if __name__ == "__main__":
 
     # Different shader programs for different lighting strategies
 
-    lightingPipeline=es.SimpleModelViewProjectionShaderProgram()
+    ModelView=es.SimpleModelViewProjectionShaderProgram()
     lightingTexturePipeline= ls.SimpleTextureGouraudShaderProgram()
+    lightingPipeline=ls.SimpleGouraudShaderProgram()
 
     # Setting up the clear screen color
     glClearColor(0.85, 0.85, 0.85, 1.0)
@@ -276,7 +382,9 @@ if __name__ == "__main__":
     glEnable(GL_DEPTH_TEST)
 
     # Creating shapes on GPU memory
-    gpu = crearSubcurvas(puntos)
+    curvas,subcurvas = crearSubcurvas(puntos)
+    curvas2,subcurvas2=crearSubcurvas(puntos2)
+    pista=crearPista(subcurvas, subcurvas2)
     auto=crear_auto()
 
     t0 = glfw.get_time()
@@ -326,37 +434,39 @@ if __name__ == "__main__":
 
         # Selecting the lighting shader program
         
-        glUseProgram(lightingPipeline.shaderProgram)
+        glUseProgram(ModelView.shaderProgram)
 
         # Setting all uniform shader variables
 
         # White light in all components: ambient, diffuse and specular.
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "La"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
 
         # Object is barely visible at only ambient. Diffuse behavior is slightly red. Sparkles are white
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
 
         # TO DO: Explore different parameter combinations to understand their effect!
 
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "lightPosition"), -5, -5, 5)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
-        glUniform1ui(glGetUniformLocation(lightingPipeline.shaderProgram, "shininess"), 100)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "lightPosition"), -5, -5, 5)
+        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
+        glUniform1ui(glGetUniformLocation(ModelView.shaderProgram, "shininess"), 100)
         
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "constantAttenuation"), 0.0001)
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "linearAttenuation"), 0.03)
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "quadraticAttenuation"), 0.01)
+        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "constantAttenuation"), 0.0001)
+        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "linearAttenuation"), 0.03)
+        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "quadraticAttenuation"), 0.01)
 
-        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
-        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
+        glUniformMatrix4fv(glGetUniformLocation(ModelView.shaderProgram, "projection"), 1, GL_TRUE, projection)
+        glUniformMatrix4fv(glGetUniformLocation(ModelView.shaderProgram, "view"), 1, GL_TRUE, view)
 
 
 
         # Drawing
-        sg.drawSceneGraphNode(gpu,lightingPipeline,'model',GL_LINE_STRIP)
+
+        #sg.drawSceneGraphNode(curvas,ModelView,'model',GL_LINE_STRIP)
+        #sg.drawSceneGraphNode(curvas2, ModelView, 'model', GL_LINE_STRIP)
 
 
 
@@ -388,6 +498,46 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "view"), 1, GL_TRUE, view)
 
         #sg.drawSceneGraphNode(auto, lightingTexturePipeline, 'model')
+        sg.drawSceneGraphNode(pista, lightingTexturePipeline, 'model')
+
+
+
+
+
+
+
+
+        glUseProgram(lightingPipeline.shaderProgram)
+
+        # White light in all components: ambient, diffuse and specular.
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
+
+        # Object is barely visible at only ambient. Diffuse behavior is slightly red. Sparkles are white
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
+
+        # TO DO: Explore different parameter combinations to understand their effect!
+
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "lightPosition"), -5, -5, 5)
+        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1],
+                    viewPos[2])
+        glUniform1ui(glGetUniformLocation(lightingPipeline.shaderProgram, "shininess"), 100)
+
+        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "constantAttenuation"), 0.0001)
+        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "linearAttenuation"), 0.03)
+        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "quadraticAttenuation"), 0.01)
+
+        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "projection"), 1, GL_TRUE,
+                           projection)
+        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
+
+
+
+
+
         
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)

@@ -1,1 +1,2 @@
 auto= https://opengameart.org/content/simple-car-textures
+pista=https://pixabay.com/images/search/asphalt%20texture/

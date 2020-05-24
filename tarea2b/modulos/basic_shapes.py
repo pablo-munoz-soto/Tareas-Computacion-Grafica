@@ -100,7 +100,6 @@ def createCurve(list):
         vertices.append(0)
         vertices.append(0)
         vertices.append(0)
-    indices=[]
     indices=range(len(list))
     return Shape(vertices,indices)
 
