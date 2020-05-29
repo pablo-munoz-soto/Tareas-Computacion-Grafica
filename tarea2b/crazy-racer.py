@@ -62,7 +62,8 @@ def velocidad(P0,P1,P2):
     return normalizar(velocidad)
 
 
-puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0,0,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,1,0]]).T,np.array([[-1.7,0,0]]).T,np.array([[-1,-0.3,0]]).T]
+#puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0.5,0.3,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,1,0]]).T,np.array([[-1.7,0,0]]).T,np.array([[-1,-0.3,0]]).T]
+puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0.5,0.3,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,4,0]]).T,np.array([[-2,5,0.3]]).T,np.array([[-4,5,0]]).T,np.array([[-3,3,0]]).T,np.array([[-1,0,0]]).T]
 puntos2=[]
 for i in range(len(puntos)):
     if i==0:
@@ -143,41 +144,6 @@ def crearSubcurvas(puntos):
  return curvas,subcurvas
 
 
-"""
-def crearPista(subcurvas,subcurvas2):
-    for i in range(len(subcurvas)):
-        assert len(subcurvas[i])==len(subcurvas2[i])
-    vertices=[]
-    indices=[]
-    normales=[]
-    n=0
-    for i in range(len(subcurvas)):
-     j=0
-     while j<len(subcurvas[i]):
-        v = np.subtract(subcurvas2[i][j], subcurvas[i][j])
-        v = np.multiply(v, 0.1)
-        if j!=0:
-          normal = normalizar(np.cross(np.array([np.subtract(subcurvas[i][j], subcurvas[i][j - 1])]), np.array([v])).T)
-          if normal[2][0] < 0:
-            normal = -normal
-          normales.append(normal)
-        if j==0:
-            normal=np.array([[0,0,1]]).T
-        vertices+=[subcurvas[i][j][0],subcurvas[i][j][1],subcurvas[i][j][2],0,0,0,normal[0][0],normal[1][0],normal[2][0]]
-        vertices+=[subcurvas2[i][j][0],subcurvas2[i][j][1],subcurvas2[i][j][2],0,0,0,normal[0][0],normal[1][0],normal[2][0]]
-        if j==0:
-         n+=1
-        if j!=0:
-           indices+=[n+1,n-1,n,n+1,n+2,n]
-           n+=2
-        if j==len(subcurvas[i])-1 and i!=len(subcurvas)-1:
-            indices+=[n+1,n-1,n,n+1,n+2,n]
-        if j == len(subcurvas[i]) - 1 and i == len(subcurvas) - 1:
-            indices += [0, n - 1, n, 0, 1, n]
-        j+=1
-    pista = sg.SceneGraphNode('pista')
-    pista.childs += [es.toGPUShape(bs.Shape(vertices, indices), GL_REPEAT, GL_NEAREST)]
-    return pista"""
 
 def crearPista(subcurvas,subcurvas2):
     for i in range(len(subcurvas)):
@@ -386,10 +352,23 @@ if __name__ == "__main__":
     curvas2,subcurvas2=crearSubcurvas(puntos2)
     pista=crearPista(subcurvas, subcurvas2)
     auto=crear_auto()
-
+    n=0
     t0 = glfw.get_time()
-    camera_theta = np.pi/4
-
+    camera_theta=16.2*np.pi/14
+    camX = (puntos[0][0][0]+puntos2[0][0][0])/2
+    camY = (puntos[0][1][0]+puntos2[0][1][0])/2
+    camZ=0.4
+    lookAt=np.array([-0.27417,-2.45318624,0])
+    puntosnuevos=[]
+    for x in subcurvas:
+        for y in x:
+         puntosnuevos.append(y)
+    subcurvas=puntosnuevos
+    puntosnuevos = []
+    for x in subcurvas2:
+        for y in x:
+            puntosnuevos.append(y)
+    subcurvas2 = puntosnuevos
     while not glfw.window_should_close(window):
 
         # Using GLFW to check for input events
@@ -399,24 +378,167 @@ if __name__ == "__main__":
         t1 = glfw.get_time()
         dt = t1 - t0
         t0 = t1
+        v = np.subtract(lookAt, np.array([camX, camY, 0]))
+
 
         if (glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS):
-            camera_theta -= 2 * dt
+            camera_theta+=0.02
+            rotacion = np.array(
+                [[np.cos(0.02), -np.sin(0.02), 0], [np.sin(0.02), np.cos(0.02), 0],
+                 [0, 0, 1]])
+
+            lookAt = np.array([[lookAt[0], lookAt[1], lookAt[2]]]).T
+            posicion_auto = np.array([[lookAt[0][0] - v[0] * 0.7, lookAt[1][0] - v[1] * 0.7, 0]]).T
+            lookAt = np.subtract(lookAt, posicion_auto)
+            lookAt = np.matmul(rotacion, lookAt)
+            lookAt = np.subtract(lookAt, -posicion_auto)
+            lookAt = np.array([lookAt[0][0], lookAt[1][0], lookAt[2][0]])
+
+            eye = np.array([[camX, camY, 0]]).T
+            eye = np.subtract(eye, posicion_auto)
+            eye = np.matmul(rotacion, eye)
+            eye = np.subtract(eye, -posicion_auto)
+            camX = eye[0][0]
+            camY = eye[1][0]
 
         if (glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS):
-            camera_theta += 2* dt
+            camera_theta -= 0.02
+            rotacion = np.array(
+                [[np.cos(-0.02), -np.sin(-0.02), 0], [np.sin(-0.02), np.cos(-0.02), 0],
+                 [0, 0, 1]])
+            lookAt = np.array([[lookAt[0], lookAt[1], lookAt[2]]]).T
+            posicion_auto=np.array([[lookAt[0][0] - v[0] * 0.7, lookAt[1][0] - v[1] * 0.7, 0]]).T
+            lookAt = np.subtract(lookAt,posicion_auto)
+            lookAt = np.matmul(rotacion, lookAt)
+            lookAt = np.subtract(lookAt, -posicion_auto)
+            lookAt = np.array([lookAt[0][0], lookAt[1][0], lookAt[2][0]])
+
+            eye = np.array([[camX, camY, 0]]).T
+            eye = np.subtract(eye, posicion_auto)
+            eye = np.matmul(rotacion, eye)
+            eye = np.subtract(eye, -posicion_auto)
+            camX=eye[0][0]
+            camY=eye[1][0]
+
+        if (glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS):
+            v=np.subtract(lookAt,np.array([camX,camY,0]))
+            lookAt=np.array([lookAt[0]+np.multiply(v[0],0.01),lookAt[1]+np.multiply(v[1],0.01),lookAt[2]])
+            camX+=np.multiply(v[0],0.01)
+            camY+=np.multiply(v[1],0.01)
+
+
+
+        if (glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS):
+            v=np.subtract(lookAt,np.array([camX,camY,0]))
+            lookAt=np.array([lookAt[0]-np.multiply(v[0],0.01),lookAt[1]-np.multiply(v[1],0.01),lookAt[2]])
+            camX-=np.multiply(v[0],0.01)
+            camY-=np.multiply(v[1],0.01)
+
+        posicion_auto=[lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.1]
+        if 100<=n<=4399:
+         for i in range(n-100,n+100):
+            v=np.subtract(subcurvas[i+1],subcurvas2[i])
+            modulo=(v[0]**2+v[1]**2)**(1/2)
+            auto_punto=np.subtract(posicion_auto,subcurvas[i+1])
+            if (auto_punto[0]**2+auto_punto[1]**2)**(1/2)<modulo:
+                auto_punto = np.subtract(posicion_auto, subcurvas2[i])
+                if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                    v = np.subtract(subcurvas[i], subcurvas2[i+1])
+                    modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                    auto_punto = np.subtract(posicion_auto, subcurvas[i])
+                    if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                        auto_punto = np.subtract(posicion_auto, subcurvas2[i+1])
+                        if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                            n=i
+                            break
+        if  n<100:
+            a=range(4400+n,4499)
+            b=range(0,101+n)
+            for i in a:
+                v = np.subtract(subcurvas[i + 1], subcurvas2[i])
+                modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                auto_punto = np.subtract(posicion_auto, subcurvas[i + 1])
+                if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                    auto_punto = np.subtract(posicion_auto, subcurvas2[i])
+                    if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                        v = np.subtract(subcurvas[i], subcurvas2[i + 1])
+                        modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                        auto_punto = np.subtract(posicion_auto, subcurvas[i])
+                        if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                            auto_punto = np.subtract(posicion_auto, subcurvas2[i + 1])
+                            if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                                n = i
+                                break
+            for i in b:
+                v = np.subtract(subcurvas[i + 1], subcurvas2[i])
+                modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                auto_punto = np.subtract(posicion_auto, subcurvas[i + 1])
+                if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                    auto_punto = np.subtract(posicion_auto, subcurvas2[i])
+                    if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                        v = np.subtract(subcurvas[i], subcurvas2[i + 1])
+                        modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                        auto_punto = np.subtract(posicion_auto, subcurvas[i])
+                        if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                            auto_punto = np.subtract(posicion_auto, subcurvas2[i + 1])
+                            if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                                n = i
+                                break
+
+        if n>4399:
+            for i in range(n - 100, 4499):
+                v = np.subtract(subcurvas[i + 1], subcurvas2[i])
+                modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                auto_punto = np.subtract(posicion_auto, subcurvas[i + 1])
+                if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                    auto_punto = np.subtract(posicion_auto, subcurvas2[i])
+                    if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                        v = np.subtract(subcurvas[i], subcurvas2[i + 1])
+                        modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                        auto_punto = np.subtract(posicion_auto, subcurvas[i])
+                        if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                            auto_punto = np.subtract(posicion_auto, subcurvas2[i + 1])
+                            if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                                n = i
+                                break
+            for i in range(0, 4499-n):
+                v = np.subtract(subcurvas[i + 1], subcurvas2[i])
+                modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                auto_punto = np.subtract(posicion_auto, subcurvas[i + 1])
+                if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                    auto_punto = np.subtract(posicion_auto, subcurvas2[i])
+                    if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                        v = np.subtract(subcurvas[i], subcurvas2[i + 1])
+                        modulo = (v[0] ** 2 + v[1] ** 2) ** (1 / 2)
+                        auto_punto = np.subtract(posicion_auto, subcurvas[i])
+                        if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                            auto_punto = np.subtract(posicion_auto, subcurvas2[i + 1])
+                            if (auto_punto[0] ** 2 + auto_punto[1] ** 2) ** (1 / 2) < modulo:
+                                n = i
+                                break
+
+
+        v = np.subtract(lookAt, np.array([camX, camY, 0]))
+        if n<4300:
+         auto.transform = np.matmul(
+            np.matmul(tr.translate(lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.68*subcurvas[n+200][2]+0.1),
+                      tr.uniformScale(0.1)), tr.rotationZ(camera_theta))
+        if n>=4300:
+            auto.transform = np.matmul(
+                np.matmul(
+                    tr.translate(lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.68 * subcurvas[n + 200-4500][2] + 0.1),
+                    tr.uniformScale(0.1)), tr.rotationZ(camera_theta))
 
         projection = tr.ortho(-1, 1, -1, 1, 0.1, 100)
         projection = tr.perspective(45, float(width)/float(height), 0.1, 100)
 
-        camX = 3 * np.sin(camera_theta)
-        camY = 3 * np.cos(camera_theta)
 
-        viewPos = np.array([camX,camY,2])
+
+        viewPos = np.array([camX,camY,camZ])
 
         view = tr.lookAt(
             viewPos,
-            np.array([0,0,0]),
+            lookAt,
             np.array([0,0,1])
         )
 
@@ -497,7 +619,7 @@ if __name__ == "__main__":
         glUniformMatrix4fv(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
         glUniformMatrix4fv(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "view"), 1, GL_TRUE, view)
 
-        #sg.drawSceneGraphNode(auto, lightingTexturePipeline, 'model')
+        sg.drawSceneGraphNode(auto, lightingTexturePipeline, 'model')
         sg.drawSceneGraphNode(pista, lightingTexturePipeline, 'model')
 
 
