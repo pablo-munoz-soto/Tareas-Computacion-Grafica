@@ -1,8 +1,3 @@
-# coding=utf-8
-"""
-Daniel Calderon, CC3501, 2019-2
-Showing lighting effects: Flat, Gauraud and Phong
-"""
 
 import glfw
 from OpenGL.GL import *
@@ -16,13 +11,13 @@ import modulos.easy_shaders as es
 import modulos.lighting_shaders as ls
 import modulos.scene_graph as sg
 import modulos.ex_curves as cu
-
+#funcion que normaliza un vector
 def normalizar(vector):
     modulo=(vector[0][0]**2+vector[1][0]**2+vector[2][0]**2)**(1/2)
     if modulo==0:return
     vector=np.multiply(vector,1/modulo)
     return vector
-
+#funcion que a partir de tres puntos calcula el vector perpendicular a la bisectriz
 def velocidad(P0,P1,P2):
     a=((P0[0][0] - P2[0][0]) ** 2 + (P0[1][0] - P2[1][0]) ** 2) ** (1 / 2)
     b = ((P0[0][0] - P1[0][0]) ** 2 + (P0[1][0] - P1[1][0]) ** 2 ) ** (1 / 2)
@@ -61,10 +56,10 @@ def velocidad(P0,P1,P2):
     if (P2[1][0] - P0[1][0]) * velocidad[1][0] < 0: velocidad[1][0] *= -1
     return normalizar(velocidad)
 
-
-#puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0.5,0.3,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,1,0]]).T,np.array([[-1.7,0,0]]).T,np.array([[-1,-0.3,0]]).T]
-puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0.5,0.3,0]]).T,np.array([[0.5,1,0]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,4,0]]).T,np.array([[-2,5,0.3]]).T,np.array([[-4,5,0]]).T,np.array([[-3,3,0]]).T,np.array([[-1,0,0]]).T]
+#puntos que generan la curva
+puntos=[np.array([[-0.5,-1,0]]).T,np.array([[0,-2,0.1]]).T,np.array([[0.5,-1,0.3]]).T,np.array([[0.5,0.3,0.1]]).T,np.array([[0.5,1,0.1]]).T,np.array([[0,1.5,0.2]]).T,np.array([[-0.5,4,0]]).T,np.array([[-2,5,0.2]]).T,np.array([[-4,5,0]]).T,np.array([[-4,3,0]]).T,np.array([[-1,0,0]]).T]
 puntos2=[]
+#llenando la lista 2 con los puntos
 for i in range(len(puntos)):
     if i==0:
         v1=velocidad(puntos[len(puntos)-1],puntos[0],puntos[1])
@@ -87,7 +82,7 @@ for i in range(len(puntos)):
     x = puntos[i][0][0] + v2[0][0]
     y = puntos[i][1][0] + v2[1][0]
     puntos2.append(np.array([[x,y,puntos[i][2][0]]]).T)
-
+#funcion que genera la RNS
 def crearSubcurvas(puntos):
  subcurvas=[]
  for i in range(len(puntos)):
@@ -144,7 +139,7 @@ def crearSubcurvas(puntos):
  return curvas,subcurvas
 
 
-
+#funcion que crea la malla que conforma la pista
 def crearPista(subcurvas,subcurvas2):
     for i in range(len(subcurvas)):
         assert len(subcurvas[i])==len(subcurvas2[i])
@@ -197,7 +192,7 @@ def crearPista(subcurvas,subcurvas2):
 
 
 
-
+#funcion que crea el auto
 def crear_auto():
     #creando la parte trasera
     vertices = [
@@ -304,26 +299,68 @@ def crear_auto():
     auto.childs+=[atras,lateral,techo,ruedatrasera1,ruedatrasera2]
     return auto
 
+#funcion que crea las decoraciones,animaciones y el contador de vueltas
+def crear_ambientacion():
+    textureQuad=bs.createTextureQuad('cielo.jpg')
+    cielo1=sg.SceneGraphNode('cielo1')
+    cielo1.childs+=[es.toGPUShape(textureQuad,GL_REPEAT, GL_NEAREST)]
+    cielo1.transform=np.matmul(tr.translate(0,-10,0),np.matmul(tr.uniformScale(20),tr.rotationX(np.pi/2)))
+    cielo2 = sg.SceneGraphNode('cielo2')
+    cielo2.childs += [es.toGPUShape(textureQuad, GL_REPEAT, GL_NEAREST)]
+    cielo2.transform = np.matmul(tr.translate(10, 0, 0),np.matmul(tr.rotationZ(np.pi/2), np.matmul(tr.uniformScale(20), tr.rotationX(np.pi / 2))))
+    cielo3 = sg.SceneGraphNode('cielo3')
+    cielo3.childs += [es.toGPUShape(textureQuad, GL_REPEAT, GL_NEAREST)]
+    cielo3.transform = np.matmul(tr.translate(-10, 0, 0), np.matmul(tr.rotationZ(np.pi / 2),
+                                                                     np.matmul(tr.uniformScale(20),
+                                                                               tr.rotationX(np.pi / 2))))
 
-def on_key(window, key, scancode, action, mods):
+    cielo4 = sg.SceneGraphNode('cielo4')
+    cielo4.childs += [es.toGPUShape(textureQuad, GL_REPEAT, GL_NEAREST)]
+    cielo4.transform=np.matmul(tr.translate(0,10,0),np.matmul(tr.uniformScale(20),tr.rotationX(np.pi/2)))
 
-    if action != glfw.PRESS:
-        return
+    sol=sg.SceneGraphNode('sol')
+    sol.childs+=[es.toGPUShape(bs.createTextureQuad('sol.jpg'), GL_REPEAT, GL_NEAREST)]
+    sol.transform=np.matmul(tr.translate(0,-7,1),np.matmul(tr.uniformScale(0.5),tr.rotationX(np.pi/2)))
 
-    elif key == glfw.KEY_ESCAPE:
-        sys.exit()
+
+    cielo=sg.SceneGraphNode('cielo')
+    cielo.childs+=[cielo1,cielo2,cielo3,cielo4,sol]
+
+    avion=sg.SceneGraphNode('avion')
+    avion.childs+=[es.toGPUShape(bs.createTextureQuad('avion.jpg'), GL_REPEAT, GL_NEAREST)]
+    avion.transform=np.matmul(tr.translate(9.9,9,1),np.matmul(np.matmul(tr.rotationX(np.pi/2),tr.rotationY(np.pi/2)),tr.uniformScale(1)))
+
+    lap=sg.SceneGraphNode('lap')
+    lap.childs += [es.toGPUShape(bs.createTextureQuad('lap.png'), GL_REPEAT, GL_NEAREST)]
+
+    numero1 = sg.SceneGraphNode('numero1')
+    numero1.childs += [es.toGPUShape(bs.createTextureQuad('1.jpg'), GL_REPEAT, GL_NEAREST)]
+
+    numero2 = sg.SceneGraphNode('numero2')
+    numero2.childs += [es.toGPUShape(bs.createTextureQuad('2.jpg'), GL_REPEAT, GL_NEAREST)]
+
+
+    numero3 = sg.SceneGraphNode('numero3')
+    numero3.childs += [es.toGPUShape(bs.createTextureQuad('3.jpg'), GL_REPEAT, GL_NEAREST)]
+
+
+
+
+    return cielo,avion,lap, numero1, numero2, numero3
+
+
+
 
 
 if __name__ == "__main__":
 
-    # Initialize glfw
     if not glfw.init():
         sys.exit()
-
+    #creando la ventana
     width = 600
     height = 600
 
-    window = glfw.create_window(width, height, "Lighting demo", None, None)
+    window = glfw.create_window(width, height, "Crazy Racer", None, None)
 
     if not window:
         glfw.terminate()
@@ -331,27 +368,25 @@ if __name__ == "__main__":
 
     glfw.make_context_current(window)
 
-    # Connecting the callback function 'on_key' to handle keyboard events
-    glfw.set_key_callback(window, on_key)
 
-    # Different shader programs for different lighting strategies
+    #creando los modos que usaremos
 
-    ModelView=es.SimpleModelViewProjectionShaderProgram()
+    ModelViewTexture=es.SimpleTextureModelViewProjectionShaderProgram()
     lightingTexturePipeline= ls.SimpleTextureGouraudShaderProgram()
-    lightingPipeline=ls.SimpleGouraudShaderProgram()
 
-    # Setting up the clear screen color
     glClearColor(0.85, 0.85, 0.85, 1.0)
 
-    # As we work in 3D, we need to check which part is in front,
-    # and which one is at the back
     glEnable(GL_DEPTH_TEST)
 
-    # Creating shapes on GPU memory
+    # creando las shapes y asignando variables para controlar
     curvas,subcurvas = crearSubcurvas(puntos)
     curvas2,subcurvas2=crearSubcurvas(puntos2)
     pista=crearPista(subcurvas, subcurvas2)
     auto=crear_auto()
+    cielo,avion,lap,numero1,numero2,numero3=crear_ambientacion()
+    traslacion_avion=0
+    vuelta=1
+    check=0
     n=0
     t0 = glfw.get_time()
     camera_theta=16.2*np.pi/14
@@ -359,6 +394,30 @@ if __name__ == "__main__":
     camY = (puntos[0][1][0]+puntos2[0][1][0])/2
     camZ=0.4
     lookAt=np.array([-0.27417,-2.45318624,0])
+    v = np.subtract(lookAt, np.array([camX, camY, 0]))
+    v=np.array([[v[0],v[1],v[2]]]).T
+    x = 1
+    if v[0][0] == 0:
+        y = 0
+    if v[1][0] == 0:
+        y = 1
+        x = 0
+    if v[0][0] != 0 and v[1][0] != 0:
+        y = (-v[0][0] * x) / v[1][0]
+    v2 = normalizar(np.array([[x, y, 0]]).T)
+    if np.cross(v.T, v2.T)[0][2] > 0:
+        v2 = -v2
+    v2=np.array([v2[0][0],v2[1][0],0])
+    posicion_lap=np.subtract(lookAt,np.multiply(v2,0.45))
+    posicion_numero=np.subtract(lookAt,np.multiply(v2,0.25))
+    lap.transform = np.matmul(tr.translate(posicion_lap[0],posicion_lap[1],0.47),
+                              np.matmul(tr.rotationZ(camera_theta - np.pi / 2+0.3),
+                                        np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                  tr.uniformScale(0.2))))
+    numero1.transform=np.matmul(tr.translate(posicion_numero[0],posicion_numero[1],0.47),
+                              np.matmul(tr.rotationZ(camera_theta - np.pi / 2+0.3),
+                                        np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                  tr.uniformScale(0.2))))
     puntosnuevos=[]
     for x in subcurvas:
         for y in x:
@@ -374,13 +433,9 @@ if __name__ == "__main__":
         # Using GLFW to check for input events
         glfw.poll_events()
 
-        # Getting the time difference from the previous iteration
-        t1 = glfw.get_time()
-        dt = t1 - t0
-        t0 = t1
         v = np.subtract(lookAt, np.array([camX, camY, 0]))
 
-
+        #giro a la izquierda del auto
         if (glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS):
             camera_theta+=0.02
             rotacion = np.array(
@@ -400,7 +455,7 @@ if __name__ == "__main__":
             eye = np.subtract(eye, -posicion_auto)
             camX = eye[0][0]
             camY = eye[1][0]
-
+        #giro a la derecha del auto
         if (glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS):
             camera_theta -= 0.02
             rotacion = np.array(
@@ -419,21 +474,20 @@ if __name__ == "__main__":
             eye = np.subtract(eye, -posicion_auto)
             camX=eye[0][0]
             camY=eye[1][0]
-
+        #avance del auto
         if (glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS):
             v=np.subtract(lookAt,np.array([camX,camY,0]))
             lookAt=np.array([lookAt[0]+np.multiply(v[0],0.01),lookAt[1]+np.multiply(v[1],0.01),lookAt[2]])
             camX+=np.multiply(v[0],0.01)
             camY+=np.multiply(v[1],0.01)
-
-
-
+        #retroceso del auto
         if (glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS):
             v=np.subtract(lookAt,np.array([camX,camY,0]))
             lookAt=np.array([lookAt[0]-np.multiply(v[0],0.01),lookAt[1]-np.multiply(v[1],0.01),lookAt[2]])
             camX-=np.multiply(v[0],0.01)
             camY-=np.multiply(v[1],0.01)
 
+        #calculando la posicion del auto en la pista
         posicion_auto=[lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.1]
         if 100<=n<=4399:
          for i in range(n-100,n+100):
@@ -519,6 +573,7 @@ if __name__ == "__main__":
 
 
         v = np.subtract(lookAt, np.array([camX, camY, 0]))
+        #asignando la transformacion al auto
         if n<4300:
          auto.transform = np.matmul(
             np.matmul(tr.translate(lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.68*subcurvas[n+200][2]+0.1),
@@ -528,7 +583,18 @@ if __name__ == "__main__":
                 np.matmul(
                     tr.translate(lookAt[0] - v[0] * 0.7, lookAt[1] - v[1] * 0.7, 0.68 * subcurvas[n + 200-4500][2] + 0.1),
                     tr.uniformScale(0.1)), tr.rotationZ(camera_theta))
+        #se usa un check a la mitad de la pista para el contador de vueltas
+        if 2300<n<2400 and vuelta==1 and check==0:
+            check+=1
+        if 2300<n<2400 and vuelta==2 and check==1:
+            check+=1
 
+        #solo si el check fue pasado se cuenta la vuelta
+        if n==0 and vuelta==1 and check==1:
+            vuelta+=1
+        if n==0 and vuelta==2 and check==2:
+            vuelta+=1
+        #asignando las matrices
         projection = tr.ortho(-1, 1, -1, 1, 0.1, 100)
         projection = tr.perspective(45, float(width)/float(height), 0.1, 100)
 
@@ -545,69 +611,94 @@ if __name__ == "__main__":
         rotation_theta = glfw.get_time()
 
 
-
-        # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # Filling or not the shapes depending on the controller state
-
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
-        # Selecting the lighting shader program
         
-        glUseProgram(ModelView.shaderProgram)
-
-        # Setting all uniform shader variables
-
-        # White light in all components: ambient, diffuse and specular.
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "La"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
-
-        # Object is barely visible at only ambient. Diffuse behavior is slightly red. Sparkles are white
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
-
-        # TO DO: Explore different parameter combinations to understand their effect!
-
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "lightPosition"), -5, -5, 5)
-        glUniform3f(glGetUniformLocation(ModelView.shaderProgram, "viewPosition"), viewPos[0], viewPos[1], viewPos[2])
-        glUniform1ui(glGetUniformLocation(ModelView.shaderProgram, "shininess"), 100)
-        
-        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "constantAttenuation"), 0.0001)
-        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "linearAttenuation"), 0.03)
-        glUniform1f(glGetUniformLocation(ModelView.shaderProgram, "quadraticAttenuation"), 0.01)
-
-        glUniformMatrix4fv(glGetUniformLocation(ModelView.shaderProgram, "projection"), 1, GL_TRUE, projection)
-        glUniformMatrix4fv(glGetUniformLocation(ModelView.shaderProgram, "view"), 1, GL_TRUE, view)
+        glUseProgram(ModelViewTexture.shaderProgram)
 
 
 
-        # Drawing
-
-        #sg.drawSceneGraphNode(curvas,ModelView,'model',GL_LINE_STRIP)
-        #sg.drawSceneGraphNode(curvas2, ModelView, 'model', GL_LINE_STRIP)
+        glUniformMatrix4fv(glGetUniformLocation(ModelViewTexture.shaderProgram, "projection"), 1, GL_TRUE, projection)
+        glUniformMatrix4fv(glGetUniformLocation(ModelViewTexture.shaderProgram, "view"), 1, GL_TRUE, view)
 
 
+
+        #creando el contador de vueltas
+        v = np.subtract(lookAt, np.array([camX, camY, 0]))
+        v = np.array([[v[0], v[1], v[2]]]).T
+        x = 1
+        if v[0][0] == 0:
+            y = 0
+        if v[1][0] == 0:
+            y = 1
+            x = 0
+        if v[0][0] != 0 and v[1][0] != 0:
+            y = (-v[0][0] * x) / v[1][0]
+        v2 = normalizar(np.array([[x, y, 0]]).T)
+        if np.cross(v.T, v2.T)[0][2] > 0:
+            v2 = -v2
+        v2 = np.array([v2[0][0], v2[1][0], 0])
+
+        posicion_lap = np.subtract(lookAt, np.multiply(v2, 0.45))
+        posicion_numero = np.subtract(lookAt, np.multiply(v2, 0.25))
+        lap.transform = np.matmul(tr.translate(posicion_lap[0], posicion_lap[1], 0.47),
+                                  np.matmul(tr.rotationZ(camera_theta - np.pi / 2 + 0.3),
+                                            np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                      tr.uniformScale(0.2))))
+
+
+        #mostrando el numero correspondiente a la vuelta
+        if vuelta==1:
+         numero1.transform = np.matmul(tr.translate(posicion_numero[0], posicion_numero[1], 0.47),
+                                      np.matmul(tr.rotationZ(camera_theta - np.pi / 2 + 0.3),
+                                                np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                          tr.uniformScale(0.2))))
+         sg.drawSceneGraphNode(numero1, ModelViewTexture, 'model')
+
+        if vuelta==2:
+         numero2.transform = np.matmul(tr.translate(posicion_numero[0], posicion_numero[1], 0.47),
+                                      np.matmul(tr.rotationZ(camera_theta - np.pi / 2 + 0.3),
+                                                np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                          tr.uniformScale(0.2))))
+         sg.drawSceneGraphNode(numero2, ModelViewTexture, 'model')
+
+        if vuelta==3:
+         numero3.transform = np.matmul(tr.translate(posicion_numero[0], posicion_numero[1], 0.47),
+                                      np.matmul(tr.rotationZ(camera_theta - np.pi / 2 + 0.3),
+                                                np.matmul(np.matmul(tr.rotationX(np.pi / 2), tr.rotationY(np.pi / 2)),
+                                                          tr.uniformScale(0.2))))
+         sg.drawSceneGraphNode(numero3, ModelViewTexture, 'model')
+        #controlando la animacion del avion
+        avion.transform=np.matmul(tr.translate(9.9,9-traslacion_avion,1),np.matmul(np.matmul(tr.rotationX(np.pi/2),tr.rotationY(np.pi/2)),tr.uniformScale(1)))
+        traslacion_avion+=0.05
+        if traslacion_avion>19:traslacion_avion=-6
+
+
+
+
+        #dibujando la ambientacion y animaciones
+        sg.drawSceneGraphNode(avion, ModelViewTexture, 'model')
+        sg.drawSceneGraphNode(cielo, ModelViewTexture, 'model')
+        sg.drawSceneGraphNode(lap, ModelViewTexture, 'model')
+
+
+        #usando el segundo modo
 
 
         glUseProgram(lightingTexturePipeline.shaderProgram)
 
-        # White light in all components: ambient, diffuse and specular.
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
 
-        # Object is barely visible at only ambient. Diffuse behavior is slightly red. Sparkles are white
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
 
-        # TO DO: Explore different parameter combinations to understand their effect!
 
-        glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "lightPosition"), -5, -5, 5)
+        glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "lightPosition"), 0, -7, 1)
         glUniform3f(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1],
                     viewPos[2])
         glUniform1ui(glGetUniformLocation(lightingTexturePipeline.shaderProgram, "shininess"), 100)
@@ -622,46 +713,6 @@ if __name__ == "__main__":
         sg.drawSceneGraphNode(auto, lightingTexturePipeline, 'model')
         sg.drawSceneGraphNode(pista, lightingTexturePipeline, 'model')
 
-
-
-
-
-
-
-
-        glUseProgram(lightingPipeline.shaderProgram)
-
-        # White light in all components: ambient, diffuse and specular.
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
-
-        # Object is barely visible at only ambient. Diffuse behavior is slightly red. Sparkles are white
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ka"), 0.2, 0.2, 0.2)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Kd"), 0.9, 0.5, 0.5)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
-
-        # TO DO: Explore different parameter combinations to understand their effect!
-
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "lightPosition"), -5, -5, 5)
-        glUniform3f(glGetUniformLocation(lightingPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1],
-                    viewPos[2])
-        glUniform1ui(glGetUniformLocation(lightingPipeline.shaderProgram, "shininess"), 100)
-
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "constantAttenuation"), 0.0001)
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "linearAttenuation"), 0.03)
-        glUniform1f(glGetUniformLocation(lightingPipeline.shaderProgram, "quadraticAttenuation"), 0.01)
-
-        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "projection"), 1, GL_TRUE,
-                           projection)
-        glUniformMatrix4fv(glGetUniformLocation(lightingPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
-
-
-
-
-
-        
-        # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.
         glfw.swap_buffers(window)
 
     glfw.terminate()

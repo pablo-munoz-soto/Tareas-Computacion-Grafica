@@ -1,2 +1,6 @@
 auto= https://opengameart.org/content/simple-car-textures
 pista=https://pixabay.com/images/search/asphalt%20texture/
+cielo=https://es.brusheezy.com/texturas/43311-textura-del-cielo-azul
+sol=http://misdibujos.de/dibujos-del-sol/
+avion=https://es.wikipedia.org/wiki/Avi%C3%B3n
+numeros=https://www.cgstudio.com/texture/black-semi-glossy-numbers-1-10-778499
