@@ -1,0 +1,5 @@
+1.- resolver la ecuacion ok
+2.- visualizar la solucion
+3.- leer y escribir archivos
+4.-generar voxeles
+5.- rotacion y movimiento de la camara
