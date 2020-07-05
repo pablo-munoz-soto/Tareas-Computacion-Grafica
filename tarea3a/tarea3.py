@@ -9,6 +9,7 @@ conditions over a square domain.
 import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
+import matplotlib.pyplot as plt
 
 # Problem setup
 #eje x , Right
@@ -26,8 +27,8 @@ T=25
 h=0.2
 
 nx = int(Width / h) - 1
-nz = int(Height / h) - 1
 ny = int(Lenght / h) - 1
+nz = int(Height / h) - 1
 
 N = nx * ny * nz
 
@@ -40,8 +41,9 @@ def getn(i, j, k):
     return k*nx*ny+j * nx + i
 
 def getIJK(n):
+    global nx, ny, nz
     k = n//(ny*nx)
-    j = (n%(ny*nx))//nw
+    j = (n%(ny*nx))//nx
     i = (n%(ny*nx))%nx
     return (i,j,k)
 
@@ -72,7 +74,7 @@ for k in range(0,nz):
 
          # Depending on the location of the point, the equation is different
          #regulador termico a
-         if nx/3<=i<=2*nx/3 and 3*ny/5<=j<=4*ny/5 and k==0:
+         if Width/3<=(i+1)*h<=2*Width/3 and 3*Lenght/5<=(j+1)*h<=4*Lenght/5 and k==0:
              A[n, n_up] = 1
              A[n, n_front] = 1
              A[n, n_back] = 1
@@ -82,7 +84,7 @@ for k in range(0,nz):
              b[n] = -regulador_A
 
          #regulador termico b
-         elif nx/3<=i<=2*nx/3 and ny/5<=j<=2*ny/5 and k==0:
+         elif Width/3<=(i+1)*h<=2*Width/3 and Lenght/5<=(j+1)*h<=2*Lenght/5 and k==0:
              A[n, n_up] = 1
              A[n, n_front] = 1
              A[n, n_back] = 1
@@ -347,5 +349,43 @@ for k in range(0,nz):
 
 # Solving our system
 x=spsolve(A,b)
+solucion=np.zeros((nx,ny,nz))
+for n in range(len(x)):
+    i,j,k=getIJK(n)
+    solucion[i,j,k]= x[n]
+
+X, Y, Z=np.mgrid[h:Width:h,h:Lenght:h,h:Height:h]
+
+fig= plt.figure(figsize=(35,20))
+ax=fig.gca(projection='3d')
+scat= ax.scatter(X,Y,Z, c=solucion, alpha=1, s=100, marker='s')
+
+fig.colorbar(scat, shrink=0.5, aspect=5)
+
+ax.set_title('temperatura en acuario')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('z')
+ax.legend()
+
+plt.show()
+from matplotlib import cm
+
+fig, ax=plt.subplots()
+
+XX,YY= np.mgrid[h:Width:h,h:Lenght:h]
+
+pcm=ax.pcolor(XX,YY,solucion[:,:,0],cmap='viridis')
+
+fig.colorbar(pcm, shrink=0.5, aspect=5, label='temperatura')
+
+ax.set_title('temperatura en acuario z=0')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.legend()
+
+plt.show()
+
+
 
 
