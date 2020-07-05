@@ -10,20 +10,25 @@ import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
+import json
+a= open('problem-setup.json')
+data=json.load(a)
+a.close()
+
 
 # Problem setup
 #eje x , Right
-Width = 3
+Width=data['width']
 #eje y, front
-Lenght=6
+Lenght=data['lenght']
 #eje z, up
-Height = 4
+Height=data['height']
 
 
-F = 0.01
-regulador_A=5
-regulador_B=30
-T=25
+F=data['window_loss']
+regulador_A=data['heater_a']
+regulador_B=data['heater_b']
+T=data['ambient_temperature']
 h=0.2
 
 nx = int(Width / h) - 1
@@ -385,6 +390,7 @@ ax.set_ylabel('y')
 ax.legend()
 
 plt.show()
+np.save(data['filename'],solucion,allow_pickle=True)
 
 
 
