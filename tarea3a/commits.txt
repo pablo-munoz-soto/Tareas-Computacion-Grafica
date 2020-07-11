@@ -2,4 +2,4 @@
 2.- visualizar la solucion ok
 3.- leer y escribir archivos ok
 4.-generar voxeles
-5.- rotacion y movimiento de la camara
+5.- generar animacion de la cola y leer informacion del cmd

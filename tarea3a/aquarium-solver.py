@@ -1,11 +1,3 @@
-"""
-Daniel Calderon, CC3501, 2019-1
-Finite Differences for Partial Differential Equations
-
-Solving the Laplace equation in 2D with Dirichlet border
-conditions over a square domain.
-"""
-
 import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
@@ -29,7 +21,7 @@ F=data['window_loss']
 regulador_A=data['heater_a']
 regulador_B=data['heater_b']
 T=data['ambient_temperature']
-h=0.2
+h=0.25
 
 nx = int(Width / h) - 1
 ny = int(Lenght / h) - 1
@@ -359,37 +351,6 @@ for n in range(len(x)):
     i,j,k=getIJK(n)
     solucion[i,j,k]= x[n]
 
-X, Y, Z=np.mgrid[h:Width:h,h:Lenght:h,h:Height:h]
-
-fig= plt.figure(figsize=(35,20))
-ax=fig.gca(projection='3d')
-scat= ax.scatter(X,Y,Z, c=solucion, alpha=1, s=100, marker='s')
-
-fig.colorbar(scat, shrink=0.5, aspect=5)
-
-ax.set_title('temperatura en acuario')
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
-ax.legend()
-
-plt.show()
-from matplotlib import cm
-
-fig, ax=plt.subplots()
-
-XX,YY= np.mgrid[h:Width:h,h:Lenght:h]
-
-pcm=ax.pcolor(XX,YY,solucion[:,:,0],cmap='viridis')
-
-fig.colorbar(pcm, shrink=0.5, aspect=5, label='temperatura')
-
-ax.set_title('temperatura en acuario z=0')
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.legend()
-
-plt.show()
 np.save(data['filename'],solucion,allow_pickle=True)
 
 
