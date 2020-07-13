@@ -1,5 +1,0 @@
-1.- resolver la ecuacion ok
-2.- visualizar la solucion ok
-3.- leer y escribir archivos ok
-4.-generar voxeles
-5.- generar animacion de la cola y leer informacion del cmd

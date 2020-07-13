@@ -4,15 +4,12 @@ import random
 import modulos.transformations as tr
 import modulos.basic_shapes as bs
 import modulos.easy_shaders as es
-import modulos.lighting_shaders as ls
 import modulos.scene_graph as sg
-import modulos.ex_curves as cu
 import glfw
 from OpenGL.GL import *
 import OpenGL.GL.shaders
 import sys
-
-a= open('view-setup.json')
+a= open(str(sys.argv[1]))
 data=json.load(a)
 a.close()
 
@@ -32,6 +29,7 @@ area_c=[]
 Width=(len(solucion)+1)*h
 Lenght=(len(solucion[0])+1)*h
 Height=(len(solucion[0][0])+1)*h
+#se ve que puntos estan en el rango de los peces
 for i in range(len(solucion)):
     for j in range(len(solucion[0])):
         for k in range(len(solucion[0][0])):
@@ -43,6 +41,7 @@ for i in range(len(solucion)):
             if t_c-2<=valor<=t_c+2:
                 area_c.append([i,j,k])
 
+#eleccion Na puntos a
 voxeles_a=[]
 while n_a!=0:
     a=random.randint(0,len(area_a)-1)
@@ -53,7 +52,7 @@ while n_a!=0:
      area_c.remove(area_a[a])
     area_a.remove(area_a[a])
     n_a-=1
-
+#eleccion de Nb puntos b
 voxeles_b=[]
 while n_b!=0:
     if len(area_b)!=1:
@@ -65,6 +64,7 @@ while n_b!=0:
      area_c.remove(area_b[b])
     area_b.remove(area_b[b])
     n_b-=1
+#eleccion de Nc puntos c
 voxeles_c = []
 while n_c!=0:
     c=random.randint(0,len(area_c)-1)
@@ -160,14 +160,21 @@ def generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area
          c.transform = np.matmul(tr.translate(area[0] * h - Width / 2, area[1] * h - Lenght / 2, area[2] * h - Height / 2),tr.uniformScale(h / 0.5))
          voxeles_area_c.childs += [c]
         else:n+=1
-    print(n)
-    print(len(area_c))
 
+    #arreglo que contine las colas
+    colas=[]
     #peces a
+    vertices = [0, -1, 0, 0, 0, 0,
+                0, -2, 0.5, 0, 0, 0,
+                0, -2, -0.5, 0, 0, 0]
+    indices = [0, 1, 2]
     peces_a = sg.SceneGraphNode('peces_a')
     for i in range(len(voxeles_a)):
      pez=voxeles_a[i]
      a=sg.SceneGraphNode('pez_a'+str(i))
+     colas.append(sg.SceneGraphNode('cola_a'+str(i)))
+     colas[-1].childs += [es.toGPUShape(bs.Shape(vertices, indices), GL_REPEAT, GL_NEAREST)]
+     colas[-1].transform=np.matmul(tr.translate(pez[0]*h-Width/2, pez[1]*h-Lenght/2, pez[2]*h-Height/2),tr.uniformScale(3*h/4))
      a.childs+=[es.toGPUShape(bs.createColorFish(1,0,0))]
      a.transform=np.matmul(tr.translate(pez[0]*h-Width/2, pez[1]*h-Lenght/2, pez[2]*h-Height/2),tr.uniformScale(3*h/4))
      peces_a.childs+=[a]
@@ -177,6 +184,11 @@ def generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area
     for i in range(len(voxeles_b)):
         pez = voxeles_b[i]
         b = sg.SceneGraphNode('pez_b' + str(i))
+        colas.append(sg.SceneGraphNode('cola_b' + str(i)))
+        colas[-1].childs += [es.toGPUShape(bs.Shape(vertices, indices), GL_REPEAT, GL_NEAREST)]
+        colas[-1].transform = np.matmul(
+            tr.translate(pez[0] * h - Width / 2, pez[1] * h - Lenght / 2, pez[2] * h - Height / 2),
+            tr.uniformScale(3 * h / 4))
         b.childs += [es.toGPUShape(bs.createColorFish(0, 1, 0))]
         b.transform=np.matmul(tr.translate(pez[0]*h-Width/2, pez[1]*h-Lenght/2, pez[2]*h-Height/2),tr.uniformScale(3*h/4))
         peces_b.childs += [b]
@@ -186,6 +198,11 @@ def generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area
     for i in range(len(voxeles_c)):
         pez = voxeles_c[i]
         c = sg.SceneGraphNode('pez_c' + str(i))
+        colas.append(sg.SceneGraphNode('cola_c' + str(i)))
+        colas[-1].childs += [es.toGPUShape(bs.Shape(vertices, indices), GL_REPEAT, GL_NEAREST)]
+        colas[-1].transform = np.matmul(
+            tr.translate(pez[0] * h - Width / 2, pez[1] * h - Lenght / 2, pez[2] * h - Height / 2),
+            tr.uniformScale(3 * h / 4))
         c.childs += [es.toGPUShape(bs.createColorFish(0, 0, 1))]
         c.transform=np.matmul(tr.translate(pez[0]*h-Width/2, pez[1]*h-Lenght/2, pez[2]*h-Height/2),tr.uniformScale(3*h/4))
         peces_c.childs += [c]
@@ -193,7 +210,7 @@ def generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area
     peces=sg.SceneGraphNode('peces')
     peces.childs+=[peces_a,peces_b,peces_c]
 
-    return acuario,peces, voxeles_area_a,voxeles_area_b,voxeles_area_c
+    return acuario,peces, voxeles_area_a,voxeles_area_b,voxeles_area_c,colas
 
 
 if __name__ == "__main__":
@@ -227,9 +244,8 @@ if __name__ == "__main__":
     # and which one is at the back
     glEnable(GL_DEPTH_TEST)
 
-    # Creating shapes on GPU memory
-    acuario,peces,voxeles_area_a,voxeles_area_b,voxeles_area_c=generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area_a,area_b,area_c)
-
+    # asignando las variables de control y creando las shapes
+    acuario,peces,voxeles_area_a,voxeles_area_b,voxeles_area_c,colas=generate_voxels(voxeles_a, voxeles_b, voxeles_c, Width, Lenght, Height, area_a,area_b,area_c)
     t0 = glfw.get_time()
     camera_theta = np.pi / 4
     camX = 10 * np.sin(camera_theta)
@@ -239,6 +255,10 @@ if __name__ == "__main__":
     draw_a=False
     draw_b=False
     draw_c=False
+    angulo=0
+    direccion=0
+    radio=10
+    altura=5
     while not glfw.window_should_close(window):
         # Using GLFW to check for input events
         glfw.poll_events()
@@ -252,8 +272,17 @@ if __name__ == "__main__":
         if (glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS):
             camera_theta += 2 * dt
 
+        if (glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS):
+            radio*=0.95
+            altura*=0.95
+
+        if (glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS):
+            radio*=1.05
+            altura*=1.05
+
         if (glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS):
             camera_theta -= 2 * dt
+
 
         if (glfw.get_key(window, glfw.KEY_A) == glfw.PRESS) and d_region>0.2:
             draw_a=not draw_a
@@ -272,10 +301,11 @@ if __name__ == "__main__":
 
         # Setting up the view transform
 
-        camX = 10 * np.sin(camera_theta)
-        camY = 10 * np.cos(camera_theta)
+        camX = radio * np.sin(camera_theta)
+        camY = radio * np.cos(camera_theta)
 
-        viewPos = np.array([camX, camY, 5])
+        viewPos = np.array([camX, camY, altura])
+
 
         view = tr.lookAt(
             viewPos,
@@ -295,7 +325,6 @@ if __name__ == "__main__":
         # Clearing the screen in both, color and depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # Filling or not the shapes depending on the controller state
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
         sg.drawSceneGraphNode(acuario,pipeline,"model",GL_LINES)
@@ -306,6 +335,18 @@ if __name__ == "__main__":
          sg.drawSceneGraphNode(voxeles_area_b, pipeline, "model")
         if draw_c:
          sg.drawSceneGraphNode(voxeles_area_c, pipeline, "model")
+        for x in colas:
+         if angulo<np.pi/2 and direccion==0:
+          x.transform=np.matmul(x.transform,tr.rotationZ(0.01))
+          angulo+=0.01
+         if angulo > np.pi / 2 and direccion == 0:
+             direccion=1
+         if angulo>-np.pi/2 and direccion==1:
+             x.transform = np.matmul(x.transform, tr.rotationZ(-0.01))
+             angulo -= 0.01
+         if angulo < -np.pi / 2 and direccion == 1:
+             direccion=0
+         sg.drawSceneGraphNode(x,pipeline,"model")
 
 
         # Once the drawing is rendered, buffers are swap so an uncomplete drawing is never seen.

@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
-import matplotlib.pyplot as plt
 import json
-a= open('problem-setup.json')
+import sys
+a= open(str(sys.argv[1]))
 data=json.load(a)
 a.close()
 
@@ -350,7 +350,7 @@ solucion=np.zeros((nx,ny,nz))
 for n in range(len(x)):
     i,j,k=getIJK(n)
     solucion[i,j,k]= x[n]
-
+#guardando la matriz
 np.save(data['filename'],solucion,allow_pickle=True)
 
 
